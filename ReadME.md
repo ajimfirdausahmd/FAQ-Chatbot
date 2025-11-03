@@ -19,7 +19,9 @@ pip install -r requirements.txt
 
 Create .env in the repo root
 
+```bash
 OPENAI_API_KEY=<redacted>
+```
 
 3. Put data
 
@@ -32,7 +34,9 @@ Place these CSVs in data/ :
 
 4. Run Evaluation
 
+```bash
 python app.py
+```
 
 This will:
 * Build or load a FAISS index in /faiss_index/
