@@ -7,10 +7,13 @@ It retrieves from 5 DOSM datasets (national, state, sex/ethnic, state+sex+ethnic
 
 1. Clone & Install
 
-git clone <your-repo-url>
+```bash
+git clone https://github.com/your/repo.git
 cd <your-repo>
-python -m venv .venv && source .venv/bin/activate   # on Windows: .venv\Scripts\activate
+python -m venv .venv 
+source .venv/bin/activate   
 pip install -r requirements.txt
+```
 
 2. Prepare environment
 
