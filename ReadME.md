@@ -26,11 +26,11 @@ OPENAI_API_KEY=<redacted>
 3. Put data
 
 Place these CSVs in `data/` :
-* `birth.csv` — Annual number of births (national total)
-* `birth_state.csv` — Annual number of births by state
-* `birth_sex_ethnic.csv` — Annual births by sex and ethnic group (national)
-* `birth_sex_ethnic_state.csv` — Annual births by sex, ethnic group, and state
-* `birth_district_sex.csv` — Annual births by district and sex
+* `birth.csv` — Annual live Births
+* `birth_state.csv` — Annual live Births by state
+* `birth_sex_ethnic.csv` — Annual live births by sex and ethnicity
+* `birth_sex_ethnic_state.csv` — Annual live births by state, sex, & Ethnicity
+* `birth_district_sex.csv` — Annual live births by district and sex
 
 4. Run Evaluation
 
@@ -54,7 +54,43 @@ This will:
 
 ### Data Card 
 
+Topic : Demography - Births
+Scope : 5 datasets
 
+1. Annual live Births
+    
+   * Source (URL) : The dataset was downloaded from the [National Registration Department & Department of Statistics Malaysia](https://open.dosm.gov.my/data-catalogue/births_annual).
+   * Refresh candence : Annual
+   * License : This data is made open under the Creative Commons Attribution 4.0 International License (CC BY 4.0)
+   * Last Update : 17 Oct 2024, 12:00
+
+2. Annual live Births by state
+
+   * Source (URL) : The dataset was downloaded from the [National Registration Department & Department of Statistics Malaysia](https://open.dosm.gov.my/data-catalogue/births_annual_state).
+   * Refresh candence : Annual
+   * License : This data is made open under the Creative Commons Attribution 4.0 International License (CC BY 4.0).
+   * Last Update : 17 Oct 2024, 12:00
+
+3. Annual live births by sex and ethnicity
+
+   * Source (URL) : The dataset was downloaded from the [DOSM Open Data Portal](https://open.dosm.gov.my/data-catalogue/births_annual_sex_ethnic).
+   * Refresh candence : Annual
+   * License : This data is made open under the Creative Commons Attribution 4.0 International License (CC BY 4.0)
+   * Last Update : 17 Oct 2024, 12:00
+
+4. Annual live births by state, sex, & Ethnicity
+
+   * Source (URL) : The dataset was downloaded from the [DOSM Open Data Portal](https://open.dosm.gov.my/data-catalogue/births_annual_sex_ethnic_state).
+   * Refresh candence : Annual
+   * License : This data is made open under the Creative Commons Attribution 4.0 International License (CC BY 4.0)
+   * Last Update : 17 Oct 2024, 12:00
+
+5. Annual live births by district and sex
+
+   * Source (URL) : The dataset was downloaded from the [DOSM Open Data Portal](https://open.dosm.gov.my/data-catalogue/births_district_sex).
+   * Refresh candence : Annual
+   * License : This data is made open under the Creative Commons Attribution 4.0 International License (CC BY 4.0)
+   * Last Update : 17 Oct 2024, 12:00
 
 
 ### RAG Design
@@ -107,4 +143,14 @@ How we compute
 
 
 ### Limitation & Future work
+
+Limitations 
+
+* Snapshot may lag behind the latest DOSM updates; answers are only as current as the ingested files.
+* Simple keyword retrieval may miss relevant rows when queries are highly compositional (e.g., multi-constraint filters).
+
+Future work
+
+* Switch to text-embedding-3-large or bge-m3 for recall improvements; try PgVector if you need multi-tenant persistence.
+* Enhance guardrails (e.g., automated refusal for out-of-scope topics) and confidence scoring
 
