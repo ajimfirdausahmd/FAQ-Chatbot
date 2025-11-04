@@ -48,9 +48,16 @@ def build_or_load_faiss(docs: List[Document], index_dir: str) -> FAISS:
 
 # RAG prompt & helpers
 template = """
-You are a factual assistant for Malaysian official statistics.
-Answer the question based ONLY on the given context and (optionally) chat history.
-If the context does not contain the answer, ask a brief clarifying question or politely refuse.
+You are a factual assistant for Malaysian official statistics, limited to annual live births data.
+
+You may ONLY answer questions using the following datasets:
+- Annual live births and crude birth rate
+- Annual live births and crude birth rate by state
+- Annual live births and crude birth rate by sex and ethnicity
+- Annual live births and crude birth rate by state, sex, and ethnicity
+- Annual live births and crude birth rate by district and sex
+
+Answer the question based ONLY on the given Context and (optionally) Chat history.
 Always include in-text bracket citations [1], [2], etc. that map to the Sources list.
 
 Chat history:
@@ -62,9 +69,8 @@ Context:
 Question: {question}
 
 Guidelines:
-- Be concise and numeric when appropriate (units, dates).
-- DO NOT invent values outside the context.
-- End with a "Sources:" section listing the URLs (or file paths) for each bracket index.
+- Stay strictly within annual live births counts (by year, state, district, sex, ethnicity).
+- If the user doesn’t specify year or geography, ask them to clarify (e.g. which year, which state).
 """
 prompt = ChatPromptTemplate.from_template(template)
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
@@ -141,10 +147,12 @@ def classify_topic(state: DialogState):
     sys_msg = SystemMessage(content="""
 You are a STRICT Yes/No classifier.
 
-Say **Yes** only if the question is about **annual counts of live births (kelahiran hidup)** in Malaysia, including:
-- National totals; by **state**, **sex**, **ethnic group**; **sex+ethnic+state**; **district+sex**
-- Simple ops on these counts (top-N, diffs, ratios, shares) or **CSV export**
-- Ambiguous geo/time (e.g., “Klang Valley”, missing year) → still Yes (downstream will clarify)
+Say **Yes** only if the question is about 
+- Annual live Births
+- Annual live Births by state
+- Annual live births by sex and ethnicity
+- Annual live births by state, sex, & Ethnicity
+- Annual live births by district and sex
 
 Say **No** for CPI/prices, income/poverty/Gini/households/LQ, deaths/mortality/life expectancy, fertility **rates** (TFR/CBR) or any non-Malaysia topic.
 
@@ -231,9 +239,8 @@ def fallback_response(state: DialogState) -> DialogState:
     msg = (
         "I’m not fully confident from the current DOSM births data. "
         "Please specify the **year** (e.g., 2018–2022), **geography** (national / state / district), "
-        "and any **breakdowns** (sex, ethnic group). "
-        "Examples: “Selangor male births in 2021”, “Top 5 states by births in 2022”, "
-        "or “Export Penang births 2015–2022 to CSV”. "
+        "and any **breakdowns** (sex, ethnic group)."
+        "Examples: “Selangor male births in 2021”, “Top 5 states by births in 2022”"
         "Note: this bot only covers **annual counts of live births** — not CPI, income, poverty, Gini, deaths, or fertility rates."
     )
     state["answer"] = msg
@@ -243,10 +250,8 @@ def fallback_response(state: DialogState) -> DialogState:
 def reject_off_topic(state: DialogState) -> DialogState:
     print("[NODE] reject_off_topic")
     msg = (
-        "Out of scope. I only handle **annual live births counts** in Malaysia "
-        "(national/state; sex/ethnic; sex+ethnic+state; district+sex). "
-        "Not CPI, income/poverty/Gini, households, deaths, or fertility rates. "
-        "Example: “Johor male births 2020” or “Export Penang births 2015–2022 to CSV”."
+        "Out of scope. I only handle annual live births in Malaysia"
+        "Not CPI, income, poverty, Gini, deaths, or fertility rates. "
     )
     state["answer"] = msg
     state["turns"].append(AIMessage(content=msg))
@@ -289,9 +294,21 @@ def build_graph(retriever):
 
 # Eval
 EVAL_QUERIES = [
-    "how much live births and crude birth rate in 2000-01-01?",
-    "which year is the highest live births in johor? ",
-    "which district in johor have the highest live births?"
+    "How many live births were recorded in 2000-01-01?",
+    "How many crude birth rate in 2014-01-01?",
+    "What is the year with the highest live births in Kelantan?",
+    "How many the highest live births in melaka?",
+    "What is the year with the lowest live births male and bumi_malay?",
+    "How many crude birth rate in year 2001-01-01 for female and chinese?",
+    "How many live births in year 2004-01-01 in selangor for male and indian?",
+    "How many live births in year 2005-01-01 in Johor for female and bumi_malay?",
+    "What is the state that have highest live births in kedah",
+    "What is the birth rate for female in 2020-01-01 in bagan datuk,perak?",
+    "How many live births were recorded in year 2023-01-01?",
+    "Top 5 highest live births in year 2022-01-01?",
+    "how many live births in year 2023-01-01 in selangor for male and others_citizens?",
+    "What is the lowest state for household income?",
+    "What is the highest crude birth in Terengganu?"
 ]
 
 def run_eval_query(graph, query: str, idx: int) -> None:
@@ -309,7 +326,8 @@ def run_eval_query(graph, query: str, idx: int) -> None:
     retrieved_docs = state.get("retrieved_docs", [])
     citations = extract_citations(retrieved_docs)
     retrieval_hit = len(retrieved_docs) > 0
-    hallucination = (not retrieval_hit) and (response.strip() != "")
+    refusal = state.get("refusal", False)
+    hallucination = (not retrieval_hit) and (response.strip() != "") 
 
     record = {
         "query": query,
@@ -317,7 +335,7 @@ def run_eval_query(graph, query: str, idx: int) -> None:
         "citations": citations,
         "latency_ms": round(latency_ms, 2),
         "retrieval_hit": retrieval_hit,
-        "hallucination": hallucination
+        "hallucination": hallucination,
     }
     with open(RESULTS_FILE, "a", encoding="utf-8") as f:
         f.write(json.dumps(record, ensure_ascii=False) + "\n")
